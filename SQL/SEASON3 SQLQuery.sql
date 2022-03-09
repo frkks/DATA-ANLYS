@@ -94,7 +94,17 @@ You have to insert all these products for every three stores with "0" quantity.
 
 Write a query to prepare this data.
 */
+select product_id, quantity
+from product.stock;
 
+
+select B.store_id, A.product_id, 0 QATTIY 
+from product.product A
+cross join sale.store B
+where A.product_id not in (
+select product_id
+from product.stock)
+order by A.product_id, B.store_id;
 
 
 --------- SELF COIN
