@@ -24,49 +24,28 @@ from Actions
 
 --2. b.	Retrieve count of total Actions, and Orders for each Advertisement Type
 
-SELECT Adv_Type, Count(Action) As sum_Action, (SELECT Count(Action) 
-												FROM Actions 
-												WHERE Action = 'Order' AND Adv_Type = 'A' ) As sum_order 
-FROM Actions
-WHERE Adv_Type = 'A'
-GROUP BY Adv_Type
-
-UNION 
-
-SELECT Adv_Type, Count(Action) As sum_Action, (SELECT Count(Action) 
-												FROM Actions 
-												WHERE Action = 'Order' AND Adv_Type = 'B' ) As sum_order 
-FROM Actions
-WHERE Adv_Type = 'B'
-GROUP BY Adv_Type
-
 --3.Calculate Orders (Conversion) rates for each Advertisement Type by dividing by total count of actions casting as float by multiplying by 1.0.
 
 
-SELECT Adv_Type, ROUND(CAST( sum_Action as float)/ CAST (sum_Action as float), 2)  AS Conversion_Rate
-FROM  (SELECT Adv_Type, Count(Action) As sum_Action, 
-						(SELECT Count(Action) 
-						FROM Actions 
-						WHERE Action = 'Order' AND Adv_Type = 'A' ) As sum_order 
+SELECT Adv_Type, ROUND((SELECT CAST((SELECT Count(Action) 
+					FROM Actions 
+					WHERE Action = 'Order' AND Adv_Type = 'A' ) AS float) / (SELECT Count(Action)
+				    FROM Actions
+				    WHERE Adv_Type = 'A')),2) AS Conversion_Rate
 FROM Actions
 WHERE Adv_Type = 'A'
 GROUP BY Adv_Type
 
 UNION 
 
-SELECT Adv_Type, Count(Action) As sum_Action, 
-						(SELECT Count(Action) 
-						FROM Actions 
-						WHERE Action = 'Order' AND Adv_Type = 'B' ) As sum_order 
+SELECT Adv_Type, ROUND((SELECT  CAST((SELECT Count(Action) 
+					FROM Actions 
+					WHERE Action = 'Order' AND Adv_Type = 'B' ) AS float) / (SELECT Count(Action)
+				    FROM Actions
+				    WHERE Adv_Type = 'B')),2) AS Conversion_Rate
 FROM Actions
 WHERE Adv_Type = 'B'
 GROUP BY Adv_Type
-) New_table
-
-
-
-
-
 
 
 
