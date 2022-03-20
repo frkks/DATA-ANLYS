@@ -21,7 +21,8 @@ SELECT	product_id,
 			WHEN ((LEAD(SUM(quantity)) OVER (PARTITION BY product_id ORDER BY discount)) - SUM(quantity)) > 0 THEN 'POSITIVE'
 			END Dis_Effect
 FROM sale.order_item
-GROUP BY product_id, discount
+GROUP BY 
+	GROUPING SETS ((discount, product_id))
 
 ) 
 
