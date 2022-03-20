@@ -1,27 +1,28 @@
 
 
+
 --------------------------------------
 -- DS 10/22 EU -- DAwSQL Session 13 --
 ----------- 19.03.2022 ---------------
 --------------------------------------
 
 
--- Product tablosunun sÃ¼tun isimlerini ve Ã¶zelliklerini listeleyiniz.
+-- Product tablosunun sütun isimlerini ve özelliklerini listeleyiniz.
 exec sys.sp_columns 'product', 'product';
 
--- Orter_item tablosunun sÃ¼tun isimlerini ve Ã¶zelliklerini listeleyiniz.
+-- Orter_item tablosunun sütun isimlerini ve özelliklerini listeleyiniz.
 exec sys.sp_columns 'order_item' 
 ;
 
 -- user defined procedures
--- En gÃ¼ncel sipariÅŸ bilgisini getiriniz
+-- En güncel sipariş bilgisini getiriniz
 select	top 1 *
 from	sale.orders
 order by order_id desc
 ;
 
--- YukarÄ±daki sorguyu dÃ¶ndÃ¼ren prosedÃ¼rÃ¼ oluÅŸturup exec komutu ile Ã§alÄ±ÅŸtÄ±rÄ±nÄ±z
-create or alter procedure usp_thelastorder
+-- Yukarıdaki sorguyu döndüren prosedürü oluşturup exec komutu ile çalıştırınız
+create or alter procedure usp_thelastorder -- or alter diye ekleyerek yazarsak böyle isimde prosedör varsa değiştitir.
 
 AS
 
@@ -32,10 +33,11 @@ order by order_id desc
 
 exec usp_thelastorder
 ;
+usp_thelastorder
+;
 
-
--- BugÃ¼nÃ¼n tarihi: '2020-04-29'
--- BugÃ¼n yapÄ±lan toplam sipariÅŸ sayÄ±sÄ±nÄ± getiren prosedÃ¼r
+-- Bugünün tarihi: '2020-04-29'
+-- Bugün yapılan toplam sipariş sayısını getiren prosedür
 
 create procedure usp_datecount
 
@@ -47,11 +49,11 @@ WHERE order_date = '2020-04-29'
 GROUP by    order_date
 ;
 
-;
+
 exec usp_datecount
 ;
 
--- GirdiÄŸimiz tarihte yapÄ±lan toplam sipariÅŸ sayÄ±sÄ±nÄ± getiren bir prosedÃ¼r yazÄ±nÄ±z.
+-- Girdiğimiz tarihte yapılan toplam sipariş sayısını getiren bir prosedür yazınız.
 
 create procedure usp_datecount2 
 (@tarih DATE)
@@ -67,8 +69,7 @@ GROUP by    order_date
 exec usp_datecount2 '2020-04-04'
 ;
 
-
--- Ä°Ki tarih arasÄ±ndaki sipariÅŸ sayÄ±larÄ±nÄ± gÃ¼nlÃ¼k olarak listeleyiniz
+-- İKi tarih arasındaki sipariş sayılarını günlük olarak listeleyiniz
 create procedure usp_datecount3 
 (@tarih1 DATE, @tarih2 DATE)
 
@@ -80,20 +81,22 @@ WHERE order_date between @tarih1 and @tarih2
 GROUP by    order_date
 ;
 
+exec usp_datecount3 '2020-04-04', '2020-04-06'
+
 
 
 -- Parametreler
 
--- parametre tanÄ±mlama
+-- parametre tanımlama
 DECLARE @param1 DATE
--- parametrelere deÄŸer atama
+-- parametrelere değer atama
 SET @param1 = '2020-04-29'
--- parametreleri sorgu iÃ§inde kullanma
+-- parametreleri sorgu içinde kullanma
 select	*
 from	sale.orders
 where	order_date = @param1
 
--- Select bloÄŸu iÃ§inde parametrelerin atanmasÄ±
+-- Select bloğu içinde parametrelerin atanması
 DECLARE @param1 DATE, @param2 INT
 
 SET @param1 = '2020-04-02'
@@ -105,8 +108,9 @@ where	order_date = @param1
 print @param2
 ;
 
--- GirdiÄŸimiz tarihte yapÄ±lan toplam sipariÅŸ sayÄ±sÄ±nÄ± getiren bir prosedÃ¼r yazÄ±nÄ±z.
--- Print komutunu kullanÄ±nÄ±z.
+
+-- Girdiğimiz tarihte yapılan toplam sipariş sayısını getiren bir prosedür yazınız.
+-- Print komutunu kullanınız.
 
 create procedure usp_datecount4
 (@tarih DATE)
@@ -126,8 +130,6 @@ print @param
 exec usp_datecount4 '2020-04-04'
 ;
 
-
-
 -- Fonksiyonlar
 
 select len('abc');
@@ -138,6 +140,7 @@ print len('abc');
 
 
 create function udf_upper 
+
 (@param nvarchar(max))
 
 RETURNS nvarchar(max)
@@ -153,9 +156,24 @@ select	dbo.udf_upper('abc')
 ;
 
 
+---print upper('abc')
 
--- Bir harfin sesli mi sessiz mi olduÄŸunu dÃ¶ndÃ¼ren fonksiyon yazÄ±nÄ±z.
--- Mehmet Emin arkadaÅŸÄ±mÄ±za teÅŸekkÃ¼r ediyoruz (hem bu kodun yazÄ±mÄ±nda hem de diÄŸer desteklerinde)
+-- Bir harfin sesli mi sessiz mi olduğunu döndüren fonksiyon yazınız.
+-- Mehmet Emin arkadaşımıza teşekkür ediyoruz (hem bu kodun yazımında hem de diğer desteklerinde)
+
+DECLARE @harf char(1)
+
+SET @harf = 'a'
+
+if @harf in ('a', 'e', 'ı', 'i', 'o', 'ö', 'u', 'ü')
+	print 'sesli harf'
+else if @harf in ('b', 'c', 'ç', 'd', 'f', 'g', 'ğ', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'r', 's', 'ş', 't', 'v', 'y', 'z')
+	print 'sessiz harf'
+else
+	print 'Lütfen Türkçe bir harf yazınız.'
+
+
+
 CREATE FUNCTION udf_sesli
 (@harf NVARCHAR(MAX))
 
@@ -163,23 +181,22 @@ RETURNS NVARCHAR(MAX)
 
 BEGIN
 
-    if @harf in ('a', 'e', 'Ä±', 'i', 'o', 'Ã¶', 'u', 'Ã¼')
+    if @harf in ('a', 'e', 'ı', 'i', 'o', 'ö', 'u', 'ü')
        SET @harf =   'sesli harf'
-    else if @harf in ('b', 'c', 'Ã§', 'd', 'f', 'g', 'ÄŸ', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'r', 's', 'ÅŸ', 't', 'v', 'y', 'z')
+    else if @harf in ('b', 'c', 'ç', 'd', 'f', 'g', 'ğ', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'r', 's', 'ş', 't', 'v', 'y', 'z')
        SET @harf =  'sessiz harf'
     else
-       SET @harf =   'LÃ¼tfen TÃ¼rkÃ§e bir harf yazÄ±nÄ±z.'
+       SET @harf =   'Lütfen Türkçe bir harf yazınız.'
 
     RETURN @harf
 END;
 
-
 -- 1 2 3 4 5 6 7 8 9 
--- GirdiÄŸimiz rakama kadar tÃ¼m rakamlarÄ±n toplamÄ±nÄ± dÃ¶ndÃ¼ren bir kod yazÄ±nÄ±z.
+-- Girdiğimiz rakama kadar tüm rakamların toplamını döndüren bir kod yazınız.
 
 DECLARE @input INT, @counter INT, @sonuc INT
 
-SET @input = 10
+SET @input = 3
 SET @counter = 1
 SET @sonuc = 0
 
@@ -187,6 +204,23 @@ while @counter <= @input
 	BEGIN
 		set @sonuc = @sonuc + @counter
 		set @counter = @counter + 1
+	END;
+
+print @sonuc
+
+
+
+DECLARE @input INT, @counter INT, @sonuc INT
+
+SET @input = 3
+SET @counter = 1
+SET @sonuc = 0
+
+while @counter <= @input
+	BEGIN
+		SET @ix = 1
+		set @sonuc = @input *( @input-1)
+		set @input = @input - 1
 	END;
 
 print @sonuc
