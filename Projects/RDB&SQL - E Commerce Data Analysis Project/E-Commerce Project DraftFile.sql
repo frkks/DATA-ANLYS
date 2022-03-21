@@ -128,7 +128,22 @@ ORDER BY Cust_id
 
 --/////////////////
 
-
+WITH T1 AS (
+SELECT Cust_id, 
+		SUM(CASE WHEN Prod_id = 'Prod_11' THEN Order_Quantity ELSE 0 END) P11,
+		SUM(CASE WHEN Prod_id = 'Prod_14' THEN Order_Quantity ELSE 0 END) P14,
+		SUM(Order_Quantity) TOTAL_PROD
+FROM combined_table
+GROUP BY Cust_id 
+HAVING 
+	    SUM(CASE WHEN Prod_id = 'Prod_11' THEN Order_Quantity ELSE 0 END) >=1 AND
+		SUM(CASE WHEN Prod_id = 'Prod_14' THEN Order_Quantity ELSE 0 END) >=1
+)
+SELECT Cust_id, P11, P14, TOTAL_PROD,
+	   ROUND(CAST( P11 as float)/CAST (TOTAL_PROD as float), 2) RATIO_P11,
+	   ROUND(CAST( P14 as float)/CAST (TOTAL_PROD as float), 2) RATIO_P14
+FROM T1
+ORDER BY Cust_id
 
 --CUSTOMER SEGMENTATION
 
@@ -137,20 +152,32 @@ ORDER BY Cust_id
 --1. Create a view that keeps visit logs of customers on a monthly basis. (For each log, three field is kept: Cust_id, Year, Month)
 --Use such date functions. Don't forget to call up columns you might need later.
 
-
+CREATE VIEW visit_logs as
+select Cust_id, 
+	datepart(year, Order_Date) as [YEAR],
+	datepart(month, Order_Date) as [MONTH]
+from combined_table
 
 --//////////////////////////////////
-
-
+select *
+from visit_logs
+order by 1
 
   --2.Create a “view” that keeps the number of monthly visits by users. (Show separately all months from the beginning  business)
 --Don't forget to call up columns you might need later.
 
+CREATE VIEW visit_num as
 
-
-
+select Cust_id, [YEAR], [MONTH], count(*) as Visit
+from visit_logs
+group by Cust_id, [YEAR], [MONTH]
+---------
+select *
+from visit_num
+order by Cust_id, [YEAR], [MONTH]
 
 --//////////////////////////////////
+
 
 
 --3. For each visit of customers, create the next month of the visit as a separate column.
@@ -158,6 +185,20 @@ ORDER BY Cust_id
 --then create a new column for each month showing the next month using the order you have made above. (use "LEAD" function.)
 --Don't forget to call up columns you might need later.
 
+CREATE VIEW nex_visit AS
+
+SELECT *,
+		DENSE_RANK () OVER(ORDER BY  [YEAR], [MONTH]) AS THIS_MONTH 
+FROM visit_num
+------------------------------------
+CREATE VIEW nex_visit1 AS
+SELECT *,
+		LEAD(THIS_MONTH,1) OVER (PARTITION BY Cust_id ORDER BY THIS_MONTH) NEXT_MONTH
+FROM nex_visit
+
+
+select *
+from nex_visit1
 
 
 --/////////////////////////////////
@@ -168,9 +209,15 @@ ORDER BY Cust_id
 --Don't forget to call up columns you might need later.
 
 
+CREATE VIEW TIME_DECEMBER AS
 
+select *, NEXT_MONTH - THIS_MONTH AS TIME_DECEMBER
+from nex_visit1
 
+-----------------------------
 
+select *
+from TIME_DECEMBER
 
 
 --///////////////////////////////////
@@ -181,9 +228,19 @@ ORDER BY Cust_id
 --Labeled as “churn” if the customer hasn't made another purchase for the months since they made their first purchase.
 --Labeled as “regular” if the customer has made a purchase every month.
 --Etc.
-	
 
+WITH T2 AS (	
+select Cust_id, AVG(TIME_DECEMBER) AVG_TIME_DECEMBER
+from TIME_DECEMBER
+group by Cust_id)
 
+select *,
+		CASE WHEN AVG_TIME_DECEMBER IS NULL THEN 'Churn'
+			WHEN AVG_TIME_DECEMBER = 1 THEN 'Regular'
+			WHEN AVG_TIME_DECEMBER > 1 THEN 'Irregular' END CUST_LABELS	
+
+from T2
+ORDER BY Cust_id
 
 
 
@@ -203,6 +260,12 @@ ORDER BY Cust_id
 --1. Find the number of customers retained month-wise. (You can use time gaps)
 --Use Time Gaps
 
+select 	[YEAR],
+	[MONTH],
+	count(DISTINCT Cust_id) as Cust_Number
+from visit_logs
+group  by [YEAR],[MONTH]
+order by [YEAR],[MONTH]
 
 
 
@@ -219,7 +282,43 @@ ORDER BY Cust_id
 
 --You should pay attention to the join type and join columns between your views or tables.
 
+CREATE VIEW THIS_NUM_OF_CUST AS
 
+SELECT	DISTINCT Cust_id, [YEAR],
+		[MONTH],
+		THIS_MONTH,
+		COUNT (Cust_id)	OVER (PARTITION BY THIS_MONTH) THIS_CUST
+FROM	TIME_DECEMBER
+
+
+
+CREATE VIEW NEXT_NUM_OF_CUST AS
+
+SELECT	DISTINCT Cust_id, [YEAR],
+		[MONTH],
+		THIS_MONTH,
+		NEXT_MONTH,
+		COUNT (Cust_id)	OVER (PARTITION BY THIS_MONTH) NEXT_CUST
+FROM	TIME_DECEMBER
+WHERE TIME_DECEMBER = 1 AND THIS_MONTH>1
+
+
+-----1--------
+
+SELECT DISTINCT B.[YEAR],B.[MONTH], ROUND(CAST ( B.NEXT_CUST AS FLOAT)/A.THIS_CUST,2) AS RETENTION_RATE
+FROM THIS_NUM_OF_CUST A INNER JOIN NEXT_NUM_OF_CUST B
+ON A.THIS_MONTH+1 =B.NEXT_MONTH
+
+--------2-----------
+
+select*, lag(RETENTION_RATE,1) OVER(ORDER BY [YEAR],[MONTH]) AS THEN_RETENTION_RATE
+FROM 
+	(SELECT DISTINCT B.[YEAR],
+				B.[MONTH],
+				B.THIS_MONTH,
+				ROUND(CAST(B.NEXT_CUST AS FLOAT)/A.THIS_CUST,2) AS RETENTION_RATE
+	FROM THIS_NUM_OF_CUST A INNER JOIN NEXT_NUM_OF_CUST B
+	ON A.THIS_MONTH+1 = B.NEXT_MONTH) C
 
 
 
