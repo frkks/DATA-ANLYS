@@ -58,7 +58,7 @@ add DaysTakenForDelivery INT;
 update combined_table
 SET DaysTakenForDelivery = DATEDIFF(day, Order_Date, Ship_Date)
 
-
+select *from combined_table
 
 --////////////////////////////////////
 
